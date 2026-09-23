@@ -1,7 +1,7 @@
 # SRP media
 
 One folder per pump. The folder name must match the SRP name in the app exactly.
-⭐ = the pumps used in the suggested walkthrough; start with these.
+⭐ = the pumps used in the suggested walkthrough. SRP-ANDREWS-088 is the "real camera footage" pump.
 
 | SRP | Status | Issue | Field |
 |---|---|---|---|
@@ -29,7 +29,7 @@ One folder per pump. The folder name must match the SRP name in the app exactly.
 | [`SRP-LOVING-022`](./SRP-LOVING-022/) | Offline | - | Loving |
 | [`SRP-ANDREWS-009`](./SRP-ANDREWS-009/) | Normal | - | Andrews |
 | [`SRP-ANDREWS-065`](./SRP-ANDREWS-065/) | Normal | - | Andrews |
-| [`SRP-ANDREWS-088`](./SRP-ANDREWS-088/) | Normal | - | Andrews |
+| [`SRP-ANDREWS-088`](./SRP-ANDREWS-088/) ⭐ | Normal | - | Andrews |
 | [`SRP-ANDREWS-089`](./SRP-ANDREWS-089/) | Normal | - | Andrews |
 | [`SRP-LOVING-007`](./SRP-LOVING-007/) | Normal | - | Loving |
 | [`SRP-LOVING-023`](./SRP-LOVING-023/) | Normal | - | Loving |

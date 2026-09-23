@@ -41,8 +41,11 @@ Best recorded at 1920×1080 (also works at 1440×810).
 2. Click **SRP-REEVES-041** (top of the attention list, SLA at risk) → stuck pump: flat red detected line.
 3. Play the burst, toggle **View annotated frame**.
 4. Switch to **SRP-MIDLAND-088** (pump leakage) to show the contamination panel at 38.6 %.
-5. **Create work order** → submit → email preview → **View in work queue** (row highlighted).
-6. Optionally open **Model Rules** and change a threshold to show the impact preview.
+5. **Real camera footage:** pick *Midland Basin → Andrews* and click **SRP-ANDREWS-088** (labelled "· camera" on the map),
+   or choose it under *Real camera footage* in the Switch SRP menu. Play the burst: these are real strut-camera frames of a
+   healthy pump, and the filmstrip shows the rod going through a full stroke, which is what the model analyses.
+6. **Create work order** → submit → email preview → **View in work queue** (row highlighted).
+7. Optionally open **Model Rules** and change a threshold to show the impact preview.
 
 ## Adding real images, videos and maps
 

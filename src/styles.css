@@ -287,6 +287,7 @@ nav { padding: var(--sp-3) var(--sp-2); display: flex; flex-direction: column; g
 .marker .pulse { fill: none; stroke: var(--critical); stroke-width: 2; animation: pulse 1.8s ease-out infinite; transform-origin: center; transform-box: fill-box; }
 @keyframes pulse { 0% { transform: scale(0.5); opacity: 0.9; } 100% { transform: scale(1.7); opacity: 0; } }
 .marker-label { fill: var(--critical-ink); font-size: 11px; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
+.marker-label-media { fill: var(--accent-strong); }
 .map-overlay { position: absolute; background: rgba(255, 255, 255, 0.94); border: 1px solid var(--line); border-radius: var(--r-sm); box-shadow: var(--shadow-card); }
 .map-ph-note { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; align-items: center; font-size: var(--fs-2xs); background: rgba(255, 255, 255, 0.94); border: 1px dashed var(--line-2); color: var(--text-2); padding: 4px 9px; border-radius: 4px; }
 .map-legend { position: absolute; bottom: 10px; left: 10px; display: flex; gap: var(--sp-3); background: rgba(255, 255, 255, 0.94); border: 1px solid var(--line); padding: 6px 10px; border-radius: var(--r-sm); flex-wrap: wrap; box-shadow: var(--shadow-card); }

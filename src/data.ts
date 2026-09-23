@@ -74,11 +74,13 @@ interface FieldDef {
   lat: number;
   lng: number;
   count: number;
+  /** half-width of the scatter around the field centre, in degrees (default 0.13 lat / 0.156 lng) */
+  spread?: [number, number];
 }
 
 const FIELDS: FieldDef[] = [
-  { country: 'United States', region: 'Delaware Basin', field: 'Reeves', code: 'REEVES', lat: 31.42, lng: -103.62, count: 10 },
-  { country: 'United States', region: 'Delaware Basin', field: 'Loving', code: 'LOVING', lat: 31.86, lng: -103.52, count: 7 },
+  { country: 'United States', region: 'Delaware Basin', field: 'Reeves', code: 'REEVES', lat: 31.45, lng: -103.78, count: 10, spread: [0.11, 0.12] },
+  { country: 'United States', region: 'Delaware Basin', field: 'Loving', code: 'LOVING', lat: 31.87, lng: -103.47, count: 7, spread: [0.09, 0.11] },
   { country: 'United States', region: 'Delaware Basin', field: 'Ward', code: 'WARD', lat: 31.55, lng: -103.1, count: 8 },
   { country: 'United States', region: 'Midland Basin', field: 'Midland', code: 'MIDLAND', lat: 31.9, lng: -102.05, count: 9 },
   { country: 'United States', region: 'Midland Basin', field: 'Martin', code: 'MARTIN', lat: 32.3, lng: -101.95, count: 8 },
@@ -363,9 +365,9 @@ function buildFleet(): SRP[] {
     for (const name of names) {
       const f = flaggedByName.get(name);
       const sr = rng(name);
-      const spread = fd.country === 'Oman' ? 0.16 : 0.13;
-      const lat = fd.lat + (sr() - 0.5) * spread * 2;
-      const lng = fd.lng + (sr() - 0.5) * spread * 2.4;
+      const [sLat, sLng] = fd.spread ?? (fd.country === 'Oman' ? [0.16, 0.192] : [0.13, 0.156]);
+      const lat = fd.lat + (sr() - 0.5) * sLat * 2;
+      const lng = fd.lng + (sr() - 0.5) * sLng * 2;
       const spm = round(6.2 + sr() * 2.4, 1);
       const cameraId = `SIE-CAM-${String(camSeq++).padStart(4, '0')}`;
 

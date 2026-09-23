@@ -34,6 +34,11 @@ export function annotatedFrameUrl(srpId: string, frame: number): string | null {
   return mediaAnnotated(srpId, frame, FRAMES_PER_BURST);
 }
 
+/** True when real camera photos or video have been uploaded for the SRP. */
+export function hasRealFootage(srpId: string): boolean {
+  return mediaFrames(srpId).length > 0 || !!mediaVideo(srpId);
+}
+
 /** Recorded burst or stream clip for an SRP (MP4/WebM). */
 export function cameraVideoUrl(srpId: string): string | null {
   return mediaVideo(srpId);

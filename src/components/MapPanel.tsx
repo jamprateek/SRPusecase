@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { hasRealFootage } from '../config';
 import type { MapImage } from '../media';
 import { SEVERITY_RANK, rng } from '../data';
 import type { SRP } from '../types';
@@ -16,32 +17,36 @@ export function MapPanel({ srps, onSelect, now, selectedId, image }: {
   srps: SRP[]; onSelect: (id: string) => void; now: number; selectedId?: string | null; image?: MapImage | null;
 }) {
   const [hover, setHover] = useState<{ srp: SRP; x: number; y: number } | null>(null);
-  // natural aspect (height / width) of the uploaded map image, once loaded
-  const [imgRatio, setImgRatio] = useState<number | null>(null);
+  // natural size of the uploaded map image, once loaded
+  const [imgInfo, setImgInfo] = useState<{ ratio: number; width: number } | null>(null);
   useEffect(() => {
-    setImgRatio(null);
+    setImgInfo(null);
     if (!image) return;
     const el = new Image();
-    el.onload = () => el.naturalWidth && setImgRatio(el.naturalHeight / el.naturalWidth);
+    el.onload = () => el.naturalWidth && setImgInfo({ ratio: el.naturalHeight / el.naturalWidth, width: el.naturalWidth });
     el.src = image.url;
   }, [image?.url]);
-  const img = image && imgRatio ? image : null;
+  const img = image && imgInfo ? image : null;
   // viewBox height follows the container's aspect so the map fills its panel without distortion
   const wrapRef = useRef<HTMLDivElement>(null);
   const [H, setH] = useState(600);
+  const [panelWidth, setPanelWidth] = useState(1000);
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
     const ro = new ResizeObserver(([e]) => {
       const { width, height } = e.contentRect;
-      if (width > 0 && height > 0) setH(Math.round((W * height) / width));
+      if (width > 0 && height > 0) {
+        setH(Math.round((W * height) / width));
+        setPanelWidth(width);
+      }
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
   // uploaded image: viewBox keeps the image's own aspect and is cropped to the panel (never stretched)
-  const VH = img ? Math.round(W * imgRatio!) : H;
+  const VH = img ? Math.round(W * imgInfo!.ratio) : H;
 
   const proj = useMemo(() => {
     if (img) {
@@ -106,11 +111,37 @@ export function MapPanel({ srps, onSelect, now, selectedId, image }: {
   }, [srps.length, fields, H]);
 
   const sorted = [...srps].sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity]);
-  const [s, w, n, e] = proj.bounds;
+  // Visible window. On an uploaded map, zoom to the SRPs in scope - but only as far as the
+  // screenshot's resolution allows (≤1.5 source px per screen px), so the imagery stays sharp.
+  const view = useMemo(() => {
+    if (!img || !srps.length) return { x: 0, y: 0, w: W, h: H, k: 1 };
+    const A = H / W;
+    const xs = srps.map((p) => proj.x(p.lng));
+    const ys = srps.map((p) => proj.y(p.lat));
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    const pad = 70;
+    const maxZoom = Math.max(1, Math.min(3, (imgInfo!.width / panelWidth) * 1.5));
+    let w = Math.max(x1 - x0 + 2 * pad, (y1 - y0 + 2 * pad) / A, W / maxZoom);
+    let h = w * A;
+    if (w > W) { w = W; h = w * A; }
+    if (h > VH) { h = VH; w = h / A; }
+    const x = Math.min(Math.max((x0 + x1) / 2 - w / 2, 0), Math.max(0, W - w));
+    const y = Math.min(Math.max((y0 + y1) / 2 - h / 2, 0), Math.max(0, VH - h));
+    return { x, y, w, h, k: w / W };
+  }, [img, srps, proj, H, VH, panelWidth, imgInfo]);
+
+  let [s, w, n, e] = proj.bounds;
+  if (img) {
+    // report the coordinates of the visible window, not the whole screenshot
+    const [bs, bw, bn, be] = img.bounds;
+    const lngAt = (x: number) => bw + (x / W) * (be - bw);
+    const latAt = (y: number) => (Math.atan(Math.sinh(mercY(bn) - (y / VH) * (mercY(bn) - mercY(bs)))) * 180) / Math.PI;
+    [s, w, n, e] = [latAt(view.y + view.h), lngAt(view.x), latAt(view.y), lngAt(view.x + view.w)];
+  }
 
   return (
     <div className="map" ref={wrapRef}>
-      <svg viewBox={`0 0 ${W} ${VH}`} preserveAspectRatio={img ? 'xMidYMid slice' : 'none'} className="map-svg">
+      <svg viewBox={`${view.x} ${view.y} ${view.w} ${img ? view.h : VH}`} preserveAspectRatio={img ? 'xMidYMid slice' : 'none'} className="map-svg">
         <defs>
           <pattern id="terrain" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
             <line x1="0" y1="0" x2="0" y2="14" className="terrain-line" />
@@ -140,7 +171,7 @@ export function MapPanel({ srps, onSelect, now, selectedId, image }: {
           const cls = sevClass(p.severity);
           const big = p.severity === 'Critical' || p.severity === 'Warning';
           return (
-            <g key={p.id} className={`marker marker-${cls} ${selectedId === p.id ? 'selected' : ''}`} transform={`translate(${cx},${cy})`}
+            <g key={p.id} className={`marker marker-${cls} ${selectedId === p.id ? 'selected' : ''}`} transform={`translate(${cx},${cy}) scale(${view.k})`}
               onMouseEnter={(ev) => {
                 const box = wrapRef.current?.getBoundingClientRect();
                 const r = ev.currentTarget.getBoundingClientRect();
@@ -150,7 +181,9 @@ export function MapPanel({ srps, onSelect, now, selectedId, image }: {
               {p.severity === 'Critical' && <circle r={16} className="pulse" />}
               <circle r={14} className="hit" />
               <circle r={big ? 8 : 6} className="dot" />
-              {p.severity === 'Critical' && <text y={-14} className="marker-label" textAnchor="middle">{p.name.replace('SRP-', '')}</text>}
+              {hasRealFootage(p.id) ? (
+                <text y={-14} className="marker-label marker-label-media" textAnchor="middle">{p.name.replace('SRP-', '')} · camera</text>
+              ) : p.severity === 'Critical' && <text y={-14} className="marker-label" textAnchor="middle">{p.name.replace('SRP-', '')}</text>}
             </g>
           );
         })}

@@ -1,7 +1,7 @@
 {
-  "_comment": "Edit these to the exact corners of your map.png: north/west = top-left corner, south/east = bottom-right corner (decimal degrees).",
-  "north": 32.661,
-  "west": -104.171,
-  "south": 31.012,
-  "east": -101.406
+  "_comment": "Corner coordinates of map.webp (fitted from town positions in the screenshot). north/west = top-left, south/east = bottom-right.",
+  "north": 33.186,
+  "west": -105.85,
+  "south": 30.0006,
+  "east": -98.7228
 }

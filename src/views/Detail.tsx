@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BURST_SECONDS, FRAMES_PER_BURST, FRAMES_PER_SECOND, MODEL_VERSION, UPLOAD_INTERVAL_MIN, cameraFrameUrl, cameraFrames } from '../config';
+import { BURST_SECONDS, FRAMES_PER_BURST, FRAMES_PER_SECOND, MODEL_VERSION, UPLOAD_INTERVAL_MIN, cameraFrameUrl, cameraFrames, hasRealFootage } from '../config';
 import {
   TECHNICIANS, contaminationBand, contaminationTrend, explanation, movementSeries, priorityCompare, rodProfile,
 } from '../data';
@@ -81,6 +81,11 @@ export function Detail() {
           <div className="stat"><span>Movement deviation</span><b className={`t-${devBand}`}>{srp.deviation.toFixed(2)}</b></div>
           <label className="stat switcher"><span>Switch SRP</span>
             <select value={srp.id} onChange={(e) => navigate('detail', e.target.value)}>
+              {srps.some((s) => hasRealFootage(s.id)) && (
+                <optgroup label="Real camera footage">
+                  {srps.filter((s) => hasRealFootage(s.id)).map((s) => <option key={'rf-' + s.id} value={s.id}>{s.name} · {s.issue ?? s.severity}</option>)}
+                </optgroup>
+              )}
               <optgroup label="Open camera events">
                 {ranked.map((s) => <option key={s.id} value={s.id}>{s.name} · {s.issue}</option>)}
               </optgroup>
