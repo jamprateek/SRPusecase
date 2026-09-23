@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { annotatedFrameUrl, cameraFrameUrl, cameraVideoUrl, FRAMES_PER_BURST, FRAMES_PER_SECOND } from '../config';
+import { annotatedFrameUrl, cameraFrames, cameraFrameUrl, cameraVideoUrl, FRAMES_PER_BURST, FRAMES_PER_SECOND } from '../config';
 import type { MovementSeries, RodProfile } from '../data';
 import { ROD_SEGMENTS } from '../data';
 import type { SRP } from '../types';
-import { Icon, fmtTime } from '../ui';
+import { Icon, fmtTime, isPortrait, useImageRatio } from '../ui';
 
 const W = 640;
 const H = 400;
@@ -24,6 +24,11 @@ export function BurstPlayer({ srp, series, profile, frame, setFrame }: {
   const videoUrl = offline ? null : cameraVideoUrl(srp.id);
   const annotatedImg = annotated ? annotatedFrameUrl(srp.id, frame) : null;
   const showVideo = !!videoUrl && !annotatedImg;
+  // Tall strut-camera frames are shown as a reel: current frame full height, neighbours either side
+  const photos = offline ? [] : cameraFrames(srp.id);
+  const photoRatio = useImageRatio(photos[0]);
+  const reel = !showVideo && !annotatedImg && photos.length > 0 && isPortrait(photoRatio);
+  const photoIdx = photos.length ? Math.round((frame / (FRAMES_PER_BURST - 1)) * (photos.length - 1)) : 0;
 
   // With a real clip, the video's position drives the frame index (clip length is mapped onto the 180-frame burst)
   const seek = (f: number) => {
@@ -89,7 +94,7 @@ export function BurstPlayer({ srp, series, profile, frame, setFrame }: {
 
   return (
     <div className="player">
-      <div className={`player-screen ${night ? 'night' : ''}`}>
+      <div className={`player-screen ${night ? 'night' : ''} ${reel ? 'is-reel' : ''}`}>
         {showVideo ? (
           <video
             ref={videoRef}
@@ -106,6 +111,20 @@ export function BurstPlayer({ srp, series, profile, frame, setFrame }: {
             }}
             onEnded={() => setPlaying(false)}
           />
+        ) : reel ? (
+          <div className="reel">
+            {[-2, -1, 0, 1, 2].map((o) => {
+              const i = photoIdx + o;
+              const style = { aspectRatio: `1 / ${photoRatio}` };
+              if (i < 0 || i >= photos.length) return <div key={o} className={`reel-slot reel-${Math.abs(o)} empty`} style={style} />;
+              return (
+                <button key={o} className={`reel-slot reel-${Math.abs(o)}`} style={style} title={`Photo ${i + 1} of ${photos.length}`}
+                  onClick={() => { pause(); seek(Math.round((i / Math.max(1, photos.length - 1)) * (FRAMES_PER_BURST - 1))); }}>
+                  <img src={photos[i]} alt={o === 0 ? label : ''} />
+                </button>
+              );
+            })}
+          </div>
         ) : realSrc ? (
           <img src={realSrc} alt={label} className="player-img" />
         ) : (
@@ -187,7 +206,7 @@ export function BurstPlayer({ srp, series, profile, frame, setFrame }: {
         <div className="player-osd">
           <span>{srp.cameraId}</span>
           <span>{fmtTime(frameTime)}:{String(Math.floor((frameTime / 1000) % 60)).padStart(2, '0')}</span>
-          <span>F{String(frame + 1).padStart(3, '0')}/{FRAMES_PER_BURST}</span>
+          <span>{reel ? `Photo ${photoIdx + 1}/${photos.length} · ` : ''}F{String(frame + 1).padStart(3, '0')}/{FRAMES_PER_BURST}</span>
         </div>
         {playing && <div className="player-rec"><span className="rec-dot" />PLAYBACK {speed}×</div>}
       </div>

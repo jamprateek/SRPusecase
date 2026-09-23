@@ -395,6 +395,20 @@ nav { padding: var(--sp-3) var(--sp-2); display: flex; flex-direction: column; g
 .anno-crit { fill: rgba(239, 77, 77, 0.55); }
 .anno-pos { stroke: #ffe066; stroke-width: 1.2; stroke-dasharray: 3 3; }
 
+.player-screen.is-reel { background: #0e141a; aspect-ratio: 4 / 3; }
+.reel { position: absolute; inset: 44px 0 30px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.reel-slot { height: 100%; padding: 0; border: 0; background: #1a232c; border-radius: 3px; overflow: hidden; cursor: pointer; flex: none; transition: opacity 0.15s; }
+.reel-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.reel-slot.reel-0 { box-shadow: 0 0 0 2px var(--accent); cursor: default; }
+.reel-slot.reel-1 { height: 86%; opacity: 0.55; }
+.reel-slot.reel-2 { height: 72%; opacity: 0.3; }
+.reel-slot:not(.reel-0):hover { opacity: 0.85; }
+.reel-slot.empty { background: transparent; cursor: default; }
+.filmstrip { display: flex; gap: 4px; margin-top: var(--sp-3); height: 112px; overflow-x: auto; padding: 2px; }
+.film { height: 100%; flex: none; padding: 0; border: 0; border-radius: 3px; overflow: hidden; cursor: pointer; opacity: 0.7; background: var(--panel-3); }
+.film img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.film:hover { opacity: 1; }
+.film.on { opacity: 1; box-shadow: 0 0 0 2px var(--accent); }
 .burst-meta { display: flex; gap: var(--sp-4); margin-top: var(--sp-3); font-size: var(--fs-xs); color: var(--text-2); flex-wrap: wrap; }
 .burst-meta b { color: var(--text); font-weight: 600; }
 .keyframes { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-2); margin-top: var(--sp-3); }
@@ -421,7 +435,7 @@ nav { padding: var(--sp-3) var(--sp-2); display: flex; flex-direction: column; g
 .grow { flex: 1 1 var(--sp-3); min-height: var(--sp-3); }
 .mini-stats > div { padding: var(--sp-2) var(--sp-3); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mini-stats > div + div { border-left: 1px solid var(--line); }
-.mini-stats span { font-size: var(--fs-2xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-stats span { font-size: var(--fs-2xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; line-height: 1.3; }
 .mini-stats b { font-size: var(--fs-md); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* charts */

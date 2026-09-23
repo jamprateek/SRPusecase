@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BURST_SECONDS, FRAMES_PER_BURST, FRAMES_PER_SECOND, MODEL_VERSION, UPLOAD_INTERVAL_MIN, cameraFrameUrl } from '../config';
+import { BURST_SECONDS, FRAMES_PER_BURST, FRAMES_PER_SECOND, MODEL_VERSION, UPLOAD_INTERVAL_MIN, cameraFrameUrl, cameraFrames } from '../config';
 import {
   TECHNICIANS, contaminationBand, contaminationTrend, explanation, movementSeries, priorityCompare, rodProfile,
 } from '../data';
@@ -8,7 +8,7 @@ import { ContaminationGauge, DeviationChart, MovementChart, RodIntensity, TrendC
 import { EmailPreview, SLA_OPTIONS, WorkOrderModal } from '../components/WorkOrderModal';
 import { useStore } from '../store';
 import type { WorkOrder } from '../types';
-import { Icon, ImageSlot, SeverityBadge, SlaChip, WorkStatusChip, fmtAgo, fmtDateTime, fmtTime } from '../ui';
+import { Icon, ImageSlot, SeverityBadge, SlaChip, WorkStatusChip, fmtAgo, fmtDateTime, fmtTime, isPortrait, useImageRatio } from '../ui';
 
 export function Detail() {
   const { srps, srpId, navigate, rules, now, notes, addNote, updateSrp, logEvent, toast, workOrders } = useStore();
@@ -50,6 +50,11 @@ export function Detail() {
   const myNotes = notes.filter((n) => n.srpId === srp.id);
   const wo = workOrders.find((w) => w.srpId === srp.id);
   const keyframes = [0, 35, 71, 107, 143, 179];
+  const photos = srp.severity === 'Offline' ? [] : cameraFrames(srp.id);
+  const photoRatio = useImageRatio(photos[0]);
+  // tall strut-camera photos make the image card taller; charts grow to keep the two cards balanced
+  const tallFrames = photos.length > 0 && isPortrait(photoRatio);
+  const photoIdx = photos.length ? Math.round((frame / (FRAMES_PER_BURST - 1)) * (photos.length - 1)) : 0;
 
   return (
     <div className="page">
@@ -100,6 +105,17 @@ export function Detail() {
             <span>Uploaded every <b>{UPLOAD_INTERVAL_MIN}</b> min</span>
             <span><b>{srp.framesAnalyzed}</b> frames analyzed in latest burst ({BURST_SECONDS}s)</span>
           </div>
+          {tallFrames ? (
+            <div className="filmstrip" aria-label="Burst photos">
+              {photos.map((url, i) => (
+                <button key={url} className={`film ${i === photoIdx ? 'on' : ''}`} style={{ aspectRatio: `1 / ${photoRatio}` }}
+                  title={`Photo ${i + 1} of ${photos.length}`}
+                  onClick={() => setFrame(Math.round((i / Math.max(1, photos.length - 1)) * (FRAMES_PER_BURST - 1)))}>
+                  <img src={url} alt="" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          ) : (
           <div className="keyframes">
             {keyframes.map((k) => (
               <button key={k} className={`kf ${Math.abs(frame - k) < 18 ? 'on' : ''}`} onClick={() => setFrame(k)}>
@@ -107,6 +123,7 @@ export function Detail() {
               </button>
             ))}
           </div>
+          )}
         </section>
 
         {/* C. Movement */}
@@ -122,7 +139,7 @@ export function Detail() {
             <div className="empty tall">No burst received in the last {Math.round((now - srp.lastUpload) / 60000)} min - movement cannot be evaluated.</div>
           ) : (
             <>
-              <MovementChart s={series} frame={frame} height={310} />
+              <MovementChart s={series} frame={frame} height={tallFrames ? 410 : 310} />
               <div className="subchart-head">
                 <span>Deviation · expected − detected (pts of stroke)</span>
                 <div className="legend small">
@@ -131,7 +148,7 @@ export function Detail() {
                   <span><i className="sw sw-critbar" />&gt; critical</span>
                 </div>
               </div>
-              <DeviationChart s={series} rules={rules} height={170} />
+              <DeviationChart s={series} rules={rules} height={tallFrames ? 220 : 170} />
               <div className="grow" />
               <div className="mini-stats">
                 <div><span>Expected rate</span><b>{srp.spm.toFixed(1)} SPM</b></div>

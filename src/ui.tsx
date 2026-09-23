@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { slaRemainingMs, slaState } from './data';
 import type { Severity, SRP, WorkStatus } from './types';
 
@@ -122,6 +122,22 @@ export function ImageSlot({
     </div>
   );
 }
+
+/** Height / width of an image once loaded (null until known or when there is no image). */
+export function useImageRatio(url: string | null | undefined) {
+  const [ratio, setRatio] = useState<number | null>(null);
+  useEffect(() => {
+    setRatio(null);
+    if (!url) return;
+    const img = new Image();
+    img.onload = () => img.naturalWidth && setRatio(img.naturalHeight / img.naturalWidth);
+    img.src = url;
+  }, [url]);
+  return ratio;
+}
+
+/** Camera frames taller than they are wide (the strut camera looks down the rod). */
+export const isPortrait = (ratio: number | null) => ratio !== null && ratio > 1.3;
 
 // ---------------------------------------------------------------------------
 // Modal

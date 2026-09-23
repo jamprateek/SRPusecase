@@ -56,6 +56,7 @@ function pick(list: string[] | undefined, frame: number, total: number): string 
 
 export const mediaFrame = (srpId: string, frame: number, total: number) => pick(srpMedia.get(srpId)?.frames, frame, total);
 export const mediaAnnotated = (srpId: string, frame: number, total: number) => pick(srpMedia.get(srpId)?.annotated, frame, total);
+export const mediaFrames = (srpId: string) => srpMedia.get(srpId)?.frames ?? [];
 export const mediaVideo = (srpId: string) => srpMedia.get(srpId)?.video ?? null;
 
 export const slug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

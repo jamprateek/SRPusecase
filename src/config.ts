@@ -1,4 +1,4 @@
-import { mediaAnnotated, mediaFrame, mediaMap, mediaVideo, type MapImage } from './media';
+import { mediaAnnotated, mediaFrame, mediaFrames, mediaMap, mediaVideo, type MapImage } from './media';
 
 /**
  * Swap-in points for real imagery. By default these read whatever has been
@@ -22,6 +22,11 @@ export function mapImageFor(country: string, region: string, field: string): Map
 /** Raw camera frame for an SRP at a burst frame index (0-179). */
 export function cameraFrameUrl(srpId: string, frame: number): string | null {
   return mediaFrame(srpId, frame, FRAMES_PER_BURST);
+}
+
+/** All uploaded raw frames for an SRP, in burst order. */
+export function cameraFrames(srpId: string): string[] {
+  return mediaFrames(srpId);
 }
 
 /** Annotated overlay frame (rod detection + contamination mask). */
