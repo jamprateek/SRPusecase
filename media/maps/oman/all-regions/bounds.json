@@ -1,0 +1,7 @@
+{
+  "_comment": "Edit these to the exact corners of your map.png: north/west = top-left corner, south/east = bottom-right corner (decimal degrees).",
+  "north": 18.766,
+  "west": 54.878,
+  "south": 17.866,
+  "east": 55.995
+}

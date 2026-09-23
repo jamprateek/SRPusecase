@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { annotatedFrameUrl, cameraFrameUrl, FRAMES_PER_BURST, FRAMES_PER_SECOND } from '../config';
+import { useEffect, useRef, useState } from 'react';
+import { annotatedFrameUrl, cameraFrameUrl, cameraVideoUrl, FRAMES_PER_BURST, FRAMES_PER_SECOND } from '../config';
 import type { MovementSeries, RodProfile } from '../data';
 import { ROD_SEGMENTS } from '../data';
 import type { SRP } from '../types';
@@ -20,23 +20,57 @@ export function BurstPlayer({ srp, series, profile, frame, setFrame }: {
   const [annotated, setAnnotated] = useState(false);
   const [speed, setSpeed] = useState(2);
   const offline = srp.severity === 'Offline';
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoUrl = offline ? null : cameraVideoUrl(srp.id);
+  const annotatedImg = annotated ? annotatedFrameUrl(srp.id, frame) : null;
+  const showVideo = !!videoUrl && !annotatedImg;
+
+  // With a real clip, the video's position drives the frame index (clip length is mapped onto the 180-frame burst)
+  const seek = (f: number) => {
+    const next = Math.min(FRAMES_PER_BURST - 1, Math.max(0, f));
+    setFrame(next);
+    const v = videoRef.current;
+    if (v && v.duration) v.currentTime = (next / FRAMES_PER_BURST) * v.duration;
+  };
+  const play = () => {
+    const v = videoRef.current;
+    if (showVideo && v) {
+      if (v.ended || frame >= FRAMES_PER_BURST - 1) v.currentTime = 0;
+      v.playbackRate = speed;
+      void v.play();
+    } else if (frame >= FRAMES_PER_BURST - 1) setFrame(0);
+    setPlaying(true);
+  };
+  const pause = () => {
+    videoRef.current?.pause();
+    setPlaying(false);
+  };
 
   useEffect(() => {
-    if (!playing) return;
+    if (videoRef.current) videoRef.current.playbackRate = speed;
+  }, [speed]);
+
+  useEffect(() => {
+    if (!playing || showVideo) return;
     const t = setInterval(() => setFrame((f) => {
       if (f >= FRAMES_PER_BURST - 1) { setPlaying(false); return f; }
       return f + 1;
     }), 1000 / (FRAMES_PER_SECOND * speed));
     return () => clearInterval(t);
-  }, [playing, speed, setFrame]);
+  }, [playing, speed, setFrame, showVideo]);
 
-  useEffect(() => { setPlaying(false); }, [srp.id]);
+  useEffect(() => { pause(); }, [srp.id]);
 
   const det = series.detected[frame];
   const pos = det ?? series.expected[frame];
   const frameTime = srp.lastUpload - (FRAMES_PER_BURST - frame) * (1000 / FRAMES_PER_SECOND);
-  const realSrc = annotated ? annotatedFrameUrl(srp.id, frame) ?? cameraFrameUrl(srp.id, frame) : cameraFrameUrl(srp.id, frame);
-  const label = annotated ? 'Rod detection and contamination overlay' : 'Live SRP camera stream placeholder';
+  const realSrc = annotatedImg ?? cameraFrameUrl(srp.id, frame);
+  const real = showVideo || !!realSrc;
+  const label = annotatedImg
+    ? 'Rod detection and contamination overlay'
+    : !real
+      ? annotated ? 'Rod detection and contamination overlay' : 'Live SRP camera stream placeholder'
+      : (showVideo ? 'SRP camera stream' : 'Captured SRP frame') + (annotated ? ' · no annotated frames uploaded' : '');
 
   // scene geometry
   const rodX = 300;
@@ -56,7 +90,23 @@ export function BurstPlayer({ srp, series, profile, frame, setFrame }: {
   return (
     <div className="player">
       <div className={`player-screen ${night ? 'night' : ''}`}>
-        {realSrc ? (
+        {showVideo ? (
+          <video
+            ref={videoRef}
+            key={videoUrl}
+            src={videoUrl!}
+            className="player-img"
+            muted
+            playsInline
+            preload="auto"
+            onLoadedMetadata={(e) => { e.currentTarget.currentTime = (frame / FRAMES_PER_BURST) * e.currentTarget.duration; }}
+            onTimeUpdate={(e) => {
+              const v = e.currentTarget;
+              if (v.duration) setFrame(Math.min(FRAMES_PER_BURST - 1, Math.floor((v.currentTime / v.duration) * FRAMES_PER_BURST)));
+            }}
+            onEnded={() => setPlaying(false)}
+          />
+        ) : realSrc ? (
           <img src={realSrc} alt={label} className="player-img" />
         ) : (
           <svg viewBox={`0 0 ${W} ${H}`} className="player-svg" preserveAspectRatio="xMidYMid slice">
@@ -143,14 +193,14 @@ export function BurstPlayer({ srp, series, profile, frame, setFrame }: {
       </div>
 
       <div className="player-controls">
-        <button className="btn btn-primary" disabled={offline} onClick={() => { if (frame >= FRAMES_PER_BURST - 1) setFrame(0); setPlaying(true); }}><Icon name="play" size={14} />Play burst</button>
-        <button className="btn" onClick={() => setPlaying(false)}><Icon name="pause" size={14} />Pause</button>
-        <button className="btn icon-only" title="Previous frame" onClick={() => { setPlaying(false); setFrame((f) => Math.max(0, f - 1)); }}><Icon name="prev" size={14} /></button>
-        <button className="btn icon-only" title="Next frame" onClick={() => { setPlaying(false); setFrame((f) => Math.min(FRAMES_PER_BURST - 1, f + 1)); }}><Icon name="next" size={14} /></button>
+        <button className="btn btn-primary" disabled={offline} onClick={play}><Icon name="play" size={14} />Play burst</button>
+        <button className="btn" onClick={pause}><Icon name="pause" size={14} />Pause</button>
+        <button className="btn icon-only" title="Previous frame" onClick={() => { pause(); seek(frame - 1); }}><Icon name="prev" size={14} /></button>
+        <button className="btn icon-only" title="Next frame" onClick={() => { pause(); seek(frame + 1); }}><Icon name="next" size={14} /></button>
         <button className={`btn ${annotated ? 'btn-on' : ''}`} onClick={() => setAnnotated((a) => !a)}><Icon name="layers" size={14} />View annotated frame</button>
       </div>
       <div className="scrub-row">
-        <input className="scrubber" type="range" min={0} max={FRAMES_PER_BURST - 1} value={frame} onChange={(e) => { setPlaying(false); setFrame(Number(e.target.value)); }} aria-label="Frame" />
+        <input className="scrubber" type="range" min={0} max={FRAMES_PER_BURST - 1} value={frame} onChange={(e) => { pause(); seek(Number(e.target.value)); }} aria-label="Frame" />
         <select className="speed" value={speed} onChange={(e) => setSpeed(Number(e.target.value))} aria-label="Playback speed">
           {[1, 2, 4].map((s) => <option key={s} value={s}>{s}× speed</option>)}
         </select>

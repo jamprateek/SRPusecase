@@ -1,5 +1,6 @@
 import { priorityCompare } from '../data';
 import { MapPanel } from '../components/MapPanel';
+import { mapImageFor } from '../config';
 import { useStore } from '../store';
 import { Icon, Kpi, SeverityBadge, SlaChip, fmtAgo } from '../ui';
 
@@ -44,7 +45,7 @@ export function Dashboard() {
             <h2><Icon name="map" /> Regional SRP map</h2>
             <span className="muted small">{scoped.length} units · click a marker to open visual analytics</span>
           </div>
-          {scoped.length ? <MapPanel srps={scoped} now={now} onSelect={(id) => navigate('detail', id)} /> : <div className="empty">No SRPs in scope</div>}
+          {scoped.length ? <MapPanel srps={scoped} now={now} image={mapImageFor(scope.country, scope.region, scope.field)} onSelect={(id) => navigate('detail', id)} /> : <div className="empty">No SRPs in scope</div>}
         </section>
 
         <section className="card attn-card">

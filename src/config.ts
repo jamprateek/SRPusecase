@@ -1,22 +1,10 @@
+import { mediaAnnotated, mediaFrame, mediaMap, mediaVideo, type MapImage } from './media';
+
 /**
- * Swap-in points for real imagery. Everything renders as a labelled placeholder
- * while these are null. Drop files into /public/images and point these at them.
+ * Swap-in points for real imagery. By default these read whatever has been
+ * uploaded to the /media folder (see media/README.md); anything missing renders
+ * as a labelled placeholder. Override here to point at another source (CDN, API).
  */
-
-/** Regional map background, e.g. a licensed Google Maps static image. */
-export const MAP_IMAGE_URL: string | null = null;
-/** Geographic bounds the map image covers: [south, west, north, east]. Required when MAP_IMAGE_URL is set. */
-export const MAP_IMAGE_BOUNDS: [number, number, number, number] | null = null;
-
-/** Live / burst frame for an SRP. Return a URL to show a real camera frame. */
-export function cameraFrameUrl(_srpId: string, _frame: number): string | null {
-  return null; // e.g. `images/${_srpId}/frame_${String(_frame).padStart(3, '0')}.jpg`
-}
-
-/** Annotated overlay frame (rod detection + contamination mask). */
-export function annotatedFrameUrl(_srpId: string, _frame: number): string | null {
-  return null;
-}
 
 export const DEMO_USER = { name: 'Alex Morgan', role: 'Production Reliability Engineer', initials: 'AM' };
 
@@ -25,3 +13,23 @@ export const FRAMES_PER_SECOND = 3;
 export const FRAMES_PER_BURST = BURST_SECONDS * FRAMES_PER_SECOND; // 180
 export const UPLOAD_INTERVAL_MIN = 20;
 export const MODEL_VERSION = 'RodVision v2.3';
+
+/** Regional map background (e.g. a licensed Google Maps image) for the selected scope. */
+export function mapImageFor(country: string, region: string, field: string): MapImage | null {
+  return mediaMap(country, region, field);
+}
+
+/** Raw camera frame for an SRP at a burst frame index (0-179). */
+export function cameraFrameUrl(srpId: string, frame: number): string | null {
+  return mediaFrame(srpId, frame, FRAMES_PER_BURST);
+}
+
+/** Annotated overlay frame (rod detection + contamination mask). */
+export function annotatedFrameUrl(srpId: string, frame: number): string | null {
+  return mediaAnnotated(srpId, frame, FRAMES_PER_BURST);
+}
+
+/** Recorded burst or stream clip for an SRP (MP4/WebM). */
+export function cameraVideoUrl(srpId: string): string | null {
+  return mediaVideo(srpId);
+}

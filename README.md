@@ -44,20 +44,21 @@ Best recorded at 1920×1080 (also works at 1440×810).
 5. **Create work order** → submit → email preview → **View in work queue** (row highlighted).
 6. Optionally open **Model Rules** and change a threshold to show the impact preview.
 
-## Adding real images later
+## Adding real images, videos and maps
 
-All swap points live in [`src/config.ts`](src/config.ts). Put files in `public/images/` and:
+Upload files into the [`media/`](media/) folder. There's no code to change: the app finds them when it builds.
 
-- `MAP_IMAGE_URL` + `MAP_IMAGE_BOUNDS` - licensed Google Maps static image (or other basemap) and its lat/lng bounds;
-  markers are projected onto it automatically.
-- `cameraFrameUrl(srpId, frame)` - raw burst frames (live stream / captured frame placeholders).
-- `annotatedFrameUrl(srpId, frame)` - annotated overlay frames (also used as the work-order / email attachment).
+- `media/srps/<SRP name>/frames/`: camera photos (`001.jpg`, `002.jpg`, …); any number, spread across the 60 s burst
+- `media/srps/<SRP name>/annotated/`: annotated photos (used by "View annotated frame", the work order and the email)
+- `media/srps/<SRP name>/video/`: one MP4 clip; plays in the burst player and drives the charts' playhead
+- `media/maps/<country>/<region>[/<field>]/`: `map.png` plus `bounds.json` (corner coordinates) per dashboard selection
 
-While these return `null`, the UI renders labelled placeholders (the camera view is a schematic driven by the
-detected rod position, so playback still reflects the analytics).
+Each folder has a README explaining what to upload. Anything missing keeps its placeholder.
+To load media from somewhere else (CDN, API), change the functions in [`src/config.ts`](src/config.ts).
 
 ## Code map
 
+- `src/media.ts` - discovers uploaded media under `media/`.
 - `src/data.ts` - synthetic fleet (64 SRPs: 7 critical, 10 warning, 3 data quality, 2 offline), movement /
   rod-profile / trend generators, SLA and priority helpers.
 - `src/store.tsx` - app state (scope, work orders, notes, history, rules, toasts) and hash routing.

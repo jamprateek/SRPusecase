@@ -1,17 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MAP_IMAGE_BOUNDS, MAP_IMAGE_URL } from '../config';
+import type { MapImage } from '../media';
 import { SEVERITY_RANK, rng } from '../data';
 import type { SRP } from '../types';
 import { Icon, SeverityBadge, fmtAgo, sevClass } from '../ui';
 
 const W = 1000;
 
+const mercY = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+
 /**
- * Map-style regional view. Renders a stylised basemap until MAP_IMAGE_URL
- * (e.g. a licensed Google Maps static image) is configured in src/config.ts.
+ * Map-style regional view. Renders a stylised basemap unless a map image for the
+ * scope has been uploaded to media/maps (see media/maps/README.md).
  */
-export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onSelect: (id: string) => void; now: number; selectedId?: string | null }) {
-  const [hover, setHover] = useState<SRP | null>(null);
+export function MapPanel({ srps, onSelect, now, selectedId, image }: {
+  srps: SRP[]; onSelect: (id: string) => void; now: number; selectedId?: string | null; image?: MapImage | null;
+}) {
+  const [hover, setHover] = useState<{ srp: SRP; x: number; y: number } | null>(null);
+  // natural aspect (height / width) of the uploaded map image, once loaded
+  const [imgRatio, setImgRatio] = useState<number | null>(null);
+  useEffect(() => {
+    setImgRatio(null);
+    if (!image) return;
+    const el = new Image();
+    el.onload = () => el.naturalWidth && setImgRatio(el.naturalHeight / el.naturalWidth);
+    el.src = image.url;
+  }, [image?.url]);
+  const img = image && imgRatio ? image : null;
   // viewBox height follows the container's aspect so the map fills its panel without distortion
   const wrapRef = useRef<HTMLDivElement>(null);
   const [H, setH] = useState(600);
@@ -26,29 +40,38 @@ export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onS
     return () => ro.disconnect();
   }, []);
 
+  // uploaded image: viewBox keeps the image's own aspect and is cropped to the panel (never stretched)
+  const VH = img ? Math.round(W * imgRatio!) : H;
+
   const proj = useMemo(() => {
-    let [s, w, n, e] = MAP_IMAGE_URL && MAP_IMAGE_BOUNDS ? MAP_IMAGE_BOUNDS : [0, 0, 0, 0];
-    if (!(MAP_IMAGE_URL && MAP_IMAGE_BOUNDS)) {
-      const lats = srps.map((p) => p.lat);
-      const lngs = srps.map((p) => p.lng);
-      s = Math.min(...lats); n = Math.max(...lats); w = Math.min(...lngs); e = Math.max(...lngs);
-      // keep aspect and pad
-      const midLat = (s + n) / 2;
-      const k = Math.cos((midLat * Math.PI) / 180);
-      let spanX = (e - w) * k;
-      let spanY = n - s;
-      const target = W / H;
-      if (spanX / spanY < target) spanX = spanY * target; else spanY = spanX / target;
-      spanX *= 1.18; spanY *= 1.22;
-      const cx = (w + e) / 2; const cy = (s + n) / 2;
-      w = cx - spanX / k / 2; e = cx + spanX / k / 2; s = cy - spanY / 2; n = cy + spanY / 2;
+    if (img) {
+      const [s, w, n, e] = img.bounds;
+      // Google Maps imagery is Web Mercator: x is linear in longitude, y in mercator latitude
+      return {
+        x: (lng: number) => ((lng - w) / (e - w)) * W,
+        y: (lat: number) => ((mercY(n) - mercY(lat)) / (mercY(n) - mercY(s))) * VH,
+        bounds: img.bounds,
+      };
     }
+    const lats = srps.map((p) => p.lat);
+    const lngs = srps.map((p) => p.lng);
+    let s = Math.min(...lats); let n = Math.max(...lats); let w = Math.min(...lngs); let e = Math.max(...lngs);
+    // keep aspect and pad
+    const midLat = (s + n) / 2;
+    const k = Math.cos((midLat * Math.PI) / 180);
+    let spanX = (e - w) * k;
+    let spanY = n - s;
+    const target = W / H;
+    if (spanX / spanY < target) spanX = spanY * target; else spanY = spanX / target;
+    spanX *= 1.18; spanY *= 1.22;
+    const cx = (w + e) / 2; const cy = (s + n) / 2;
+    w = cx - spanX / k / 2; e = cx + spanX / k / 2; s = cy - spanY / 2; n = cy + spanY / 2;
     return {
       x: (lng: number) => ((lng - w) / (e - w)) * W,
       y: (lat: number) => ((n - lat) / (n - s)) * H,
       bounds: [s, w, n, e] as const,
     };
-  }, [srps, H]);
+  }, [srps, H, img, VH]);
 
   const fields = useMemo(() => {
     const m = new Map<string, SRP[]>();
@@ -87,14 +110,14 @@ export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onS
 
   return (
     <div className="map" ref={wrapRef}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="map-svg">
+      <svg viewBox={`0 0 ${W} ${VH}`} preserveAspectRatio={img ? 'xMidYMid slice' : 'none'} className="map-svg">
         <defs>
           <pattern id="terrain" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
             <line x1="0" y1="0" x2="0" y2="14" className="terrain-line" />
           </pattern>
         </defs>
-        {MAP_IMAGE_URL ? (
-          <image href={MAP_IMAGE_URL} x={0} y={0} width={W} height={H} preserveAspectRatio="none" />
+        {img ? (
+          <image href={img.url} x={0} y={0} width={W} height={VH} preserveAspectRatio="none" />
         ) : (
           <g>
             <rect width={W} height={H} className="map-bg" />
@@ -118,7 +141,12 @@ export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onS
           const big = p.severity === 'Critical' || p.severity === 'Warning';
           return (
             <g key={p.id} className={`marker marker-${cls} ${selectedId === p.id ? 'selected' : ''}`} transform={`translate(${cx},${cy})`}
-              onMouseEnter={() => setHover(p)} onMouseLeave={() => setHover(null)} onClick={() => onSelect(p.id)}>
+              onMouseEnter={(ev) => {
+                const box = wrapRef.current?.getBoundingClientRect();
+                const r = ev.currentTarget.getBoundingClientRect();
+                if (box) setHover({ srp: p, x: r.left + r.width / 2 - box.left, y: r.top + r.height / 2 - box.top });
+              }}
+              onMouseLeave={() => setHover(null)} onClick={() => onSelect(p.id)}>
               {p.severity === 'Critical' && <circle r={16} className="pulse" />}
               <circle r={14} className="hit" />
               <circle r={big ? 8 : 6} className="dot" />
@@ -128,10 +156,12 @@ export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onS
         })}
       </svg>
 
-      <div className="map-ph-note">
-        <Icon name="map" size={14} />
-        Map placeholder: replace with licensed Google Maps image or API
-      </div>
+      {!img && (
+        <div className="map-ph-note">
+          <Icon name="map" size={14} />
+          Map placeholder: replace with licensed Google Maps image or API
+        </div>
+      )}
       <div className="map-legend">
         {(['Critical', 'Warning', 'Data quality', 'Normal', 'Offline'] as const).map((sv) => (
           <span key={sv}><SeverityBadge severity={sv} /> <b>{srps.filter((p) => p.severity === sv).length}</b></span>
@@ -144,12 +174,12 @@ export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onS
       <div className="map-coords">{s.toFixed(2)}°, {w.toFixed(2)}° → {n.toFixed(2)}°, {e.toFixed(2)}°</div>
 
       {hover && (
-        <div className="map-tip" style={{ left: `${(proj.x(hover.lng) / W) * 100}%`, top: `${(proj.y(hover.lat) / H) * 100}%` }}>
-          <div className="tt-head">{hover.name}</div>
-          <div className="row gap6"><SeverityBadge severity={hover.severity} />{hover.issue && <span>{hover.issue}</span>}</div>
-          <div className="muted">{hover.field} · {hover.cameraId}</div>
-          <div className="muted">Contamination {hover.contamination.toFixed(1)}% · upload {fmtAgo(hover.lastUpload, now)}</div>
-          {hover.issue && <div className="tip-cta">Click to open visual analytics</div>}
+        <div className="map-tip" style={{ left: hover.x, top: hover.y }}>
+          <div className="tt-head">{hover.srp.name}</div>
+          <div className="row gap6"><SeverityBadge severity={hover.srp.severity} />{hover.srp.issue && <span>{hover.srp.issue}</span>}</div>
+          <div className="muted">{hover.srp.field} · {hover.srp.cameraId}</div>
+          <div className="muted">Contamination {hover.srp.contamination.toFixed(1)}% · upload {fmtAgo(hover.srp.lastUpload, now)}</div>
+          {hover.srp.issue && <div className="tip-cta">Click to open visual analytics</div>}
         </div>
       )}
     </div>
