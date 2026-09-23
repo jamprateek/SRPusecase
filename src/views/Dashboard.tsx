@@ -35,7 +35,7 @@ export function Dashboard() {
         <Kpi icon="alert" tone={crit ? 'critical' : 'warning'} label="SRPs requiring attention" value={crit + warn + dq}
           sub={<span className="kpi-split"><span className="t-critical">{crit} critical</span><span className="t-warning">{warn} warning</span><span className="t-dq">{dq} data quality</span></span>} />
         <Kpi icon="upload" label="Latest upload success rate" value={<>{rate.toFixed(1)}<small>%</small></>} sub={<>{received} of {scoped.length} bursts received complete</>} />
-        <Kpi icon="drop" tone="warning" label="Avg contamination · flagged units" value={<>{avgFlag.toFixed(1)}<small>%</small></>} sub={<>vs {avgHealthy.toFixed(1)}% across normal units</>} />
+        <Kpi icon="drop" tone="warning" label="Avg flagged contamination" value={<>{avgFlag.toFixed(1)}<small>%</small></>} sub={<>vs {avgHealthy.toFixed(1)}% across normal units</>} />
       </div>
 
       <div className="dash-grid">
@@ -52,27 +52,26 @@ export function Dashboard() {
             <h2><Icon name="alert" /> Requiring attention</h2>
             <span className="muted small">{attention.length} open camera events</span>
           </div>
-          <div className="attn-list">
+          <div className="attn-scroll"><div className="attn-list">
             {attention.map((s) => (
               <button key={s.id} className={`attn-row attn-${s.severity === 'Critical' ? 'critical' : s.severity === 'Warning' ? 'warning' : 'dq'}`} onClick={() => navigate('detail', s.id)}>
                 <div className="attn-top">
-                  <b className="mono">{s.name}</b>
+                  <b className="id">{s.name}</b>
                   <SeverityBadge severity={s.severity} />
                 </div>
                 <div className="attn-meta">
                   <span className="reason">{s.issue}</span>
-                  <span className="muted">{s.region}</span>
-                  <span className="muted">{s.eventTime ? fmtAgo(s.eventTime, now) : ''}</span>
-                  <SlaChip srp={s} now={now} />
+                  <span>{s.region}</span>
+                  <span>Event {s.eventTime ? fmtAgo(s.eventTime, now) : '-'}</span>
+                  <span className="attn-sla">SLA <SlaChip srp={s} now={now} /></span>
                 </div>
                 <div className="attn-obs">{s.observation}</div>
               </button>
             ))}
             {!attention.length && <div className="empty">No open events in this scope.</div>}
-          </div>
+          </div></div>
         </section>
       </div>
-
     </div>
   );
 }

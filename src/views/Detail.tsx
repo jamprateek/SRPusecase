@@ -58,7 +58,7 @@ export function Detail() {
         <div className="dh-left">
           <button className="btn btn-ghost back" onClick={() => navigate('dashboard')}><Icon name="back" size={14} />Dashboard</button>
           <div className="dh-title">
-            <h1 className="mono">{srp.name}</h1>
+            <h1 className="id">{srp.name}</h1>
             <SeverityBadge severity={srp.severity} />
             {srp.issue && <span className="issue-pill">{srp.issue}</span>}
             <WorkStatusChip status={srp.workStatus} />
@@ -122,7 +122,7 @@ export function Detail() {
             <div className="empty tall">No burst received in the last {Math.round((now - srp.lastUpload) / 60000)} min - movement cannot be evaluated.</div>
           ) : (
             <>
-              <MovementChart s={series} frame={frame} height={260} />
+              <MovementChart s={series} frame={frame} height={310} />
               <div className="subchart-head">
                 <span>Deviation · expected − detected (pts of stroke)</span>
                 <div className="legend small">
@@ -131,7 +131,8 @@ export function Detail() {
                   <span><i className="sw sw-critbar" />&gt; critical</span>
                 </div>
               </div>
-              <DeviationChart s={series} rules={rules} height={150} />
+              <DeviationChart s={series} rules={rules} height={170} />
+              <div className="grow" />
               <div className="mini-stats">
                 <div><span>Expected rate</span><b>{srp.spm.toFixed(1)} SPM</b></div>
                 <div><span>Detected rate</span><b>{srp.issue === 'Stuck pump' ? '0.0 SPM' : srp.issue === 'Pump-off' ? `${srp.spm.toFixed(1)} SPM · irregular` : `${srp.spm.toFixed(1)} SPM`}</b></div>
@@ -154,8 +155,10 @@ export function Detail() {
           <div className="contam">
             <div className="contam-score">
               <div className="cs-label">Contamination</div>
-              <div className={`cs-value t-${band.cls}`}>{srp.contamination.toFixed(1)}<small>%</small></div>
-              <span className={`band band-${band.cls}`}>{band.label}</span>
+              <div className="cs-row">
+                <div className={`cs-value t-${band.cls}`}>{srp.contamination.toFixed(1)}<small>%</small></div>
+                <span className={`band band-${band.cls}`}>{band.label}</span>
+              </div>
               <ContaminationGauge value={srp.contamination} rules={rules} />
               <div className="metrics">
                 <div><span>Mean rod brightness</span><b>{srp.meanBrightness}<small> /255</small></b></div>

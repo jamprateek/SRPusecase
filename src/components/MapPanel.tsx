@@ -1,11 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MAP_IMAGE_BOUNDS, MAP_IMAGE_URL } from '../config';
 import { SEVERITY_RANK, rng } from '../data';
 import type { SRP } from '../types';
 import { Icon, SeverityBadge, fmtAgo, sevClass } from '../ui';
 
 const W = 1000;
-const H = 600;
 
 /**
  * Map-style regional view. Renders a stylised basemap until MAP_IMAGE_URL
@@ -13,6 +12,19 @@ const H = 600;
  */
 export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onSelect: (id: string) => void; now: number; selectedId?: string | null }) {
   const [hover, setHover] = useState<SRP | null>(null);
+  // viewBox height follows the container's aspect so the map fills its panel without distortion
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [H, setH] = useState(600);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => {
+      const { width, height } = e.contentRect;
+      if (width > 0 && height > 0) setH(Math.round((W * height) / width));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const proj = useMemo(() => {
     let [s, w, n, e] = MAP_IMAGE_URL && MAP_IMAGE_BOUNDS ? MAP_IMAGE_BOUNDS : [0, 0, 0, 0];
@@ -36,7 +48,7 @@ export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onS
       y: (lat: number) => ((n - lat) / (n - s)) * H,
       bounds: [s, w, n, e] as const,
     };
-  }, [srps]);
+  }, [srps, H]);
 
   const fields = useMemo(() => {
     const m = new Map<string, SRP[]>();
@@ -68,22 +80,18 @@ export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onS
       return pts.join(' ');
     });
     return { roads, creeks };
-  }, [srps.length, fields]);
+  }, [srps.length, fields, H]);
 
   const sorted = [...srps].sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity]);
   const [s, w, n, e] = proj.bounds;
 
   return (
-    <div className="map">
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" className="map-svg">
+    <div className="map" ref={wrapRef}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="map-svg">
         <defs>
           <pattern id="terrain" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
             <line x1="0" y1="0" x2="0" y2="14" className="terrain-line" />
           </pattern>
-          <radialGradient id="vignette" cx="50%" cy="50%" r="75%">
-            <stop offset="60%" stopColor="transparent" />
-            <stop offset="100%" stopColor="var(--map-vignette)" />
-          </radialGradient>
         </defs>
         {MAP_IMAGE_URL ? (
           <image href={MAP_IMAGE_URL} x={0} y={0} width={W} height={H} preserveAspectRatio="none" />
@@ -101,7 +109,6 @@ export function MapPanel({ srps, onSelect, now, selectedId }: { srps: SRP[]; onS
                 <text x={f.x0 + 12} y={f.y1 - 10} className="map-field-label">{f.name.toUpperCase()} FIELD</text>
               </g>
             ))}
-            <rect width={W} height={H} fill="url(#vignette)" />
           </g>
         )}
         {sorted.map((p) => {

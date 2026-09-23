@@ -59,7 +59,7 @@ export function BurstPlayer({ srp, series, profile, frame, setFrame }: {
         {realSrc ? (
           <img src={realSrc} alt={label} className="player-img" />
         ) : (
-          <svg viewBox={`0 0 ${W} ${H}`} className="player-svg">
+          <svg viewBox={`0 0 ${W} ${H}`} className="player-svg" preserveAspectRatio="xMidYMid slice">
             <defs>
               <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" stopColor="#2b3a48" />
@@ -148,11 +148,13 @@ export function BurstPlayer({ srp, series, profile, frame, setFrame }: {
         <button className="btn icon-only" title="Previous frame" onClick={() => { setPlaying(false); setFrame((f) => Math.max(0, f - 1)); }}><Icon name="prev" size={14} /></button>
         <button className="btn icon-only" title="Next frame" onClick={() => { setPlaying(false); setFrame((f) => Math.min(FRAMES_PER_BURST - 1, f + 1)); }}><Icon name="next" size={14} /></button>
         <button className={`btn ${annotated ? 'btn-on' : ''}`} onClick={() => setAnnotated((a) => !a)}><Icon name="layers" size={14} />View annotated frame</button>
+      </div>
+      <div className="scrub-row">
+        <input className="scrubber" type="range" min={0} max={FRAMES_PER_BURST - 1} value={frame} onChange={(e) => { setPlaying(false); setFrame(Number(e.target.value)); }} aria-label="Frame" />
         <select className="speed" value={speed} onChange={(e) => setSpeed(Number(e.target.value))} aria-label="Playback speed">
-          {[1, 2, 4].map((s) => <option key={s} value={s}>{s}×</option>)}
+          {[1, 2, 4].map((s) => <option key={s} value={s}>{s}× speed</option>)}
         </select>
       </div>
-      <input className="scrubber" type="range" min={0} max={FRAMES_PER_BURST - 1} value={frame} onChange={(e) => { setPlaying(false); setFrame(Number(e.target.value)); }} aria-label="Frame" />
     </div>
   );
 }

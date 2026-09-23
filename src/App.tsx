@@ -69,7 +69,7 @@ function Sidebar() {
         ))}
       </nav>
       <div className="pipeline">
-        <div className="pipeline-title">Processing pipeline</div>
+        <div className="pipeline-title caps">Processing pipeline</div>
         {stages.map((s) => (
           <div key={s.label} className="stage">
             <span className="stage-dot"><Icon name={s.icon} size={12} /></span>

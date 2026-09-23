@@ -75,11 +75,11 @@ export function History() {
               {rows.map((e) => (
                 <tr key={e.id} className={`clickable ${e.srpId === selected ? 'row-sel' : ''}`} onClick={() => setSelected(e.srpId)}>
                   <td className="nowrap">{fmtDateTime(e.time)}</td>
-                  <td className="mono strong nowrap">{e.srpId}</td>
+                  <td className="id nowrap">{e.srpId}</td>
                   <td className="nowrap">{e.issue}</td>
                   <td className={`num t-${contaminationBand(e.contamination, rules).cls}`}>{e.contamination.toFixed(1)}</td>
                   <td className="num">{e.confidence}%</td>
-                  <td className="mono small">{e.batchId}</td>
+                  <td className="num-text small">{e.batchId}</td>
                   <td className="nowrap">{e.reviewer}</td>
                   <td>{e.action}</td>
                   <td><span className={`res res-${e.resolution.toLowerCase().replace(/ /g, '-')}`}>{e.resolution}</span></td>

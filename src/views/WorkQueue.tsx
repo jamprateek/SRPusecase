@@ -66,8 +66,8 @@ export function WorkQueue() {
                 const band = contaminationBand(s.contamination, rules);
                 return (
                   <tr key={s.id} className={`clickable ${highlightWo === s.id ? 'row-new' : ''}`} onClick={() => navigate('detail', s.id)}>
-                    <td><span className={`prio prio-${PRIORITY[s.severity]}`}>{PRIORITY[s.severity]}</span> <SeverityBadge severity={s.severity} compact /></td>
-                    <td className="mono strong nowrap">{s.name}{wo && <div className="wo-id">{wo.id}</div>}</td>
+                    <td><div className="prio-cell"><span className={`prio prio-${PRIORITY[s.severity]}`}>{PRIORITY[s.severity]}</span><SeverityBadge severity={s.severity} compact /></div></td>
+                    <td className="id nowrap">{s.name}{wo && <div className="wo-id">{wo.id}</div>}</td>
                     <td>{s.field}</td>
                     <td className="nowrap">{s.region}</td>
                     <td className="nowrap">{s.issue}</td>
